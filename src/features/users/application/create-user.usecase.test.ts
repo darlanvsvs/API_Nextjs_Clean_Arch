@@ -58,4 +58,24 @@ describe("CreateUserUseCase (Application Layer)", () => {
     expect(mockRepo.save).toHaveBeenCalledTimes(1);
     expect(result.id).toBe(savedUser.id);
   });
+
+  // NOVO CÓDIGO a ser adicionado em create-user.usecase.test.ts
+
+  it("should throw an error if the email already exists (RED)", async () => {
+    // 1. Arrange: Usamos os mesmos dados de entrada
+    const inputData = { email: "existing@user.com", password: "password123" };
+
+    // 2. Arrange: Treinamos o repositório para RETORNAR um usuário existente
+    const existingUser: UserSaveData = { id: "uuid-existing", ...inputData };
+    mockRepo.findByEmail.mockResolvedValue(existingUser);
+
+    // 3. Assert (O teste que vai FALHAR)
+    // Esperamos que a execução do Use Case Lance um Erro.
+    await expect(useCase.execute(inputData)).rejects.toThrow(
+      "Email already exists"
+    );
+
+    // 4. Assert Secundário: Garantimos que o 'save' NUNCA foi chamado
+    expect(mockRepo.save).not.toHaveBeenCalled();
+  });
 });
