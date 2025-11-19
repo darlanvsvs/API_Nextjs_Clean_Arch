@@ -11,16 +11,16 @@ import { HashingService } from "@/features/users/application/hashing.service.int
 // === MOCKS (Simulações de Infraestrutura) ===
 
 class MockUserRepository implements UserRepository {
-  save: Mock<[UserSaveData], Promise<UserSaveData>> = vi.fn();
-  findByEmail: Mock<[string], Promise<UserSaveData | null>> = vi.fn();
+  // Usamos o vi.fn() e deixamos o TS inferir que é uma função, mas mais importante,
+  // garantimos que o objeto criado tenha as funções de mock.
+  save = vi.fn();
+  findByEmail = vi.fn();
 }
 
 class MockHashingService implements HashingService {
-  // Definimos o que a função hash deve retornar para o teste
-  hash: Mock<[string], Promise<string>> = vi
-    .fn()
-    .mockResolvedValue("hashed_secret_from_mock");
-  compare: Mock<[string, string], Promise<boolean>> = vi.fn();
+  // Removemos a tipagem complexa e deixamos o vi.fn() criar a função de mock
+  hash = vi.fn().mockResolvedValue("hashed_secret_from_mock");
+  compare = vi.fn();
 }
 
 describe("CreateUserUseCase (Application Layer)", () => {
@@ -51,8 +51,9 @@ describe("CreateUserUseCase (Application Layer)", () => {
       password: "hashed_secret_from_mock", // O que o mock de hash retorna
     };
 
-    mockRepo.findByEmail.mockResolvedValue(null);
-    mockRepo.save.mockResolvedValue(savedUser);
+    (mockRepo.findByEmail as Mock).mockResolvedValue(null);
+
+    (mockRepo.save as Mock).mockResolvedValue(savedUser);
 
     // ACT
     const result = await useCase.execute(inputData);
