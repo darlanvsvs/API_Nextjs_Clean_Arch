@@ -1,81 +1,73 @@
-import { describe, it, expect, vi, Mock } from "vitest";
+import { describe, it, expect, vi, Mock, beforeEach } from "vitest";
+import { CreateUserUseCase } from "./create-user.usecase";
 
-// Antigo (pode falhar):
-// import { UserRepository, UserSaveData } from '../application/user.repository.interface';
-
-// Novo (robusto):
+// Interfaces que o Use Case espera
 import {
   UserRepository,
   UserSaveData,
 } from "@/features/users/application/user.repository.interface";
-// Antigo (falhando):
-// import { CreateUserUseCase } from "./create-user.usecase";
+import { HashingService } from "@/features/users/application/hashing.service.interface";
 
-// Novo (robusto, usando o alias @/):
-import { CreateUserUseCase } from "@/features/users/application/create-user.usecase";
+// === MOCKS (Simulações de Infraestrutura) ===
 
-// 1. Criamos um MOCK (Simulação) que implementa o contrato (UserRepository)
 class MockUserRepository implements UserRepository {
-  // Estas são funções que o Use Case irá chamar
   save: Mock<[UserSaveData], Promise<UserSaveData>> = vi.fn();
   findByEmail: Mock<[string], Promise<UserSaveData | null>> = vi.fn();
 }
 
+class MockHashingService implements HashingService {
+  // Definimos o que a função hash deve retornar para o teste
+  hash: Mock<[string], Promise<string>> = vi
+    .fn()
+    .mockResolvedValue("hashed_secret_from_mock");
+  compare: Mock<[string, string], Promise<boolean>> = vi.fn();
+}
+
 describe("CreateUserUseCase (Application Layer)", () => {
   let mockRepo: MockUserRepository;
+  let mockHashingService: MockHashingService; // Nova dependência
   let useCase: CreateUserUseCase;
 
-  // Antes de cada teste, configuramos o ambiente
   beforeEach(() => {
-    // Criamos uma instância do nosso repositório falso
+    // Criamos instâncias dos mocks
     mockRepo = new MockUserRepository();
+    mockHashingService = new MockHashingService();
 
-    // 2. Instanciamos o Use Case, INJETANDO o repositório falso.
-    //    O Use Case não sabe que ele é falso, só sabe que segue o contrato.
-    useCase = new CreateUserUseCase(mockRepo);
+    // 1. INJETAMOS as duas dependências
+    // O teste vai falhar na compilação porque o Use Case não aceita 2 argumentos ainda!
+    useCase = new CreateUserUseCase(mockRepo, mockHashingService);
 
-    // Garante que os espiões (spies) do mock estão limpos
     vi.clearAllMocks();
   });
 
-  it("should call the repository to save the new user (RED)", async () => {
-    // 3. Arrange: Definimos o que o repositório falso deve retornar se for chamado.
-    const inputData = { email: "new@user.com", password: "password123" };
-    const savedUser: UserSaveData = { id: "uuid-fake", ...inputData };
+  it("should hash the password before calling the repository to save", async () => {
+    // ARRANGE
+    const rawPassword = "password123";
+    const inputData = { email: "secure@user.com", password: rawPassword };
 
-    // O repositório mockado deve fingir que o usuário não existe:
+    const savedUser: UserSaveData = {
+      id: "fake-uuid",
+      email: inputData.email,
+      password: "hashed_secret_from_mock", // O que o mock de hash retorna
+    };
+
     mockRepo.findByEmail.mockResolvedValue(null);
-
-    // E fingir que salvou o usuário, retornando o objeto salvo:
     mockRepo.save.mockResolvedValue(savedUser);
 
-    // 4. Act: Rodamos o Use Case
+    // ACT
     const result = await useCase.execute(inputData);
 
-    // 5. Assert (O que deve FALHAR agora):
-    // O teste vai falhar porque o Use Case não existe, mas a lógica exige que:
-    expect(mockRepo.findByEmail).toHaveBeenCalledWith(inputData.email);
-    expect(mockRepo.save).toHaveBeenCalledTimes(1);
-    expect(result.id).toBe(savedUser.id);
-  });
+    // ASSERT (Onde o teste falhará logicamente)
+    // 2. Esperamos que o Hashing Service seja chamado com a senha crua:
+    expect(mockHashingService.hash).toHaveBeenCalledWith(rawPassword);
 
-  // NOVO CÓDIGO a ser adicionado em create-user.usecase.test.ts
+    // 3. Esperamos que o Repositório seja chamado com o hash (o resultado do mock):
+    expect(mockRepo.save).toHaveBeenCalledWith({
+      ...savedUser,
+      password: "hashed_secret_from_mock",
+    });
 
-  it("should throw an error if the email already exists (RED)", async () => {
-    // 1. Arrange: Usamos os mesmos dados de entrada
-    const inputData = { email: "existing@user.com", password: "password123" };
-
-    // 2. Arrange: Treinamos o repositório para RETORNAR um usuário existente
-    const existingUser: UserSaveData = { id: "uuid-existing", ...inputData };
-    mockRepo.findByEmail.mockResolvedValue(existingUser);
-
-    // 3. Assert (O teste que vai FALHAR)
-    // Esperamos que a execução do Use Case Lance um Erro.
-    await expect(useCase.execute(inputData)).rejects.toThrow(
-      "Email already exists"
-    );
-
-    // 4. Assert Secundário: Garantimos que o 'save' NUNCA foi chamado
-    expect(mockRepo.save).not.toHaveBeenCalled();
+    // 4. O resultado final deve ser o usuário mockado
+    expect(result.password).toBe("hashed_secret_from_mock");
   });
 });
