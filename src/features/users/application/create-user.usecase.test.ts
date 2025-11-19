@@ -5,6 +5,7 @@ import { CreateUserUseCase } from "./create-user.usecase";
 import {
   UserRepository,
   UserSaveData,
+  UserCreateData,
 } from "@/features/users/application/user.repository.interface";
 import { HashingService } from "@/features/users/application/hashing.service.interface";
 
@@ -45,10 +46,9 @@ describe("CreateUserUseCase (Application Layer)", () => {
     const rawPassword = "password123";
     const inputData = { email: "secure@user.com", password: rawPassword };
 
-    const savedUser: UserSaveData = {
-      id: "fake-uuid",
+    const savedUser: UserCreateData = {
       email: inputData.email,
-      password: "hashed_secret_from_mock", // O que o mock de hash retorna
+      password: "hashed_secret_from_mock",
     };
 
     (mockRepo.findByEmail as Mock).mockResolvedValue(null);

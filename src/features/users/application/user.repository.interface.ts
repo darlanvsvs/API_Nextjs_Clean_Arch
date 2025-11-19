@@ -1,16 +1,19 @@
-// Define a estrutura mínima de dados que um usuário deve ter ao ser salvo
+// src/features/users/application/user.repository.interface.ts
+
+// O tipo de dados que o Repositório RETORNA (tem ID)
 export type UserSaveData = {
-  id: string;
+  id: string; // ID é obrigatório para o dado retornado/salvo
   email: string;
-  password: string; // Hash
+  password: string;
 };
 
-// Interface que define o CONTRATO para salvar um usuário.
-// O 'Application' layer só conhece esta interface, não sabe qual banco será usado.
-export interface UserRepository {
-  // Método que salva o usuário
-  save(user: UserSaveData): Promise<UserSaveData>;
+// O tipo de dados que o Repositório RECEBE para criação (SEM ID)
+export type UserCreateData = Omit<UserSaveData, "id">; // Remove 'id' de UserSaveData
 
-  // Método que verifica se o email já existe (Regra de Negócio)
+// A interface que define o CONTRATO
+export interface UserRepository {
+  // Agora o save RECEBE UserCreateData e RETORNA UserSaveData
+  save(user: UserCreateData): Promise<UserSaveData>;
+
   findByEmail(email: string): Promise<UserSaveData | null>;
 }

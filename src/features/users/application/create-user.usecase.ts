@@ -1,4 +1,4 @@
-import { UserRepository } from "./user.repository.interface";
+import { UserRepository, UserCreateData } from "./user.repository.interface"; // NOVO
 import { HashingService } from "./hashing.service.interface";
 // 1. IMPORTAÇÃO CRUCIAL: Trazendo a Regra de Negócio Pura (Zod Schema)
 import { UserSchema } from "@/features/users/domain/user.schema";
@@ -31,8 +31,8 @@ export class CreateUserUseCase {
     const hashedPassword = await this.hashingService.hash(validData.password);
 
     // 5. PREPARAR DADOS
-    const dataToSave = {
-      id: "fake-uuid",
+    const dataToSave: UserCreateData = {
+      // <--- Usamos o tipo sem ID aqui
       email: validData.email,
       password: hashedPassword,
     };
