@@ -71,4 +71,17 @@ describe("CreateUserUseCase (Application Layer)", () => {
     // 4. O resultado final deve ser o usuário mockado
     expect(result.password).toBe("hashed_secret_from_mock");
   });
+
+  it("should throw an error when data violates the Domain Schema (RED)", async () => {
+    // 1. Arrange: Dados que violam as regras do DOMÍNIO (senha muito curta, email inválido)
+    const invalidData = { email: "not-an-email", password: "123" };
+
+    // 2. Assert (O teste que vai FALHAR)
+    // Esperamos que o Use Case lance um erro porque o Zod vai falhar
+    // (Lembre-se, o Use Case ainda não chama o Zod, por isso falhará)
+    await expect(useCase.execute(invalidData)).rejects.toThrow();
+
+    // 3. Assert Secundário: Garantimos que o Repositório NUNCA foi chamado
+    expect(mockRepo.save).not.toHaveBeenCalled();
+  });
 });
