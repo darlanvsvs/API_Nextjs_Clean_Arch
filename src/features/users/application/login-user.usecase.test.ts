@@ -54,6 +54,30 @@ describe("LoginUserUseCase (Application Layer)", () => {
     expect(mockRepo.findByEmail).toHaveBeenCalledWith(inputData.email);
   });
 
-  // 🔴 TESTE 2 (O próximo passo): Deve falhar se a senha não bater.
-  // ...
+  // 🔴 TESTE 2: Deve falhar se a senha estiver incorreta
+  it('should throw "Invalid credentials" if password comparison fails (RED)', async () => {
+    const inputData = { email: "found@user.com", password: "wrong_password" };
+
+    // 1. Arrange: O repositório ENCONTRA o usuário
+    const foundUser: UserSaveData = {
+      id: "uuid-1",
+      email: inputData.email,
+      password: "hashed_password",
+    };
+    mockRepo.findByEmail.mockResolvedValue(foundUser);
+
+    // 2. Arrange: O serviço de HASH retorna FALSO (senha incorreta)
+    (mockHashingService.compare as Mock).mockResolvedValue(false);
+
+    // 3. Assert (A Falha Esperada): Deve lançar o mesmo erro de credenciais inválidas.
+    await expect(useCase.execute(inputData)).rejects.toThrow(
+      "Invalid credentials"
+    );
+
+    // 4. Assert Secundário: Garantimos que o 'compare' foi chamado com a senha crua.
+    expect(mockHashingService.compare).toHaveBeenCalledWith(
+      inputData.password,
+      foundUser.password
+    );
+  });
 });

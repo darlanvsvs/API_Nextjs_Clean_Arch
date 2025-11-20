@@ -18,12 +18,24 @@ export class LoginUserUseCase {
     // 1. Orquestração: Buscar o usuário pelo email
     const user = await this.userRepository.findByEmail(input.email);
 
-    // 2. Regra de Negócio: Se o usuário não for achado, lançar o erro esperado pelo teste
+    // 2. Regra de Negócio: Se o usuário não for achado, lançar erro (Já implementado)
     if (!user) {
       throw new Error("Invalid credentials");
     }
 
-    // Por enquanto, apenas devolvemos o objeto para fazer o teste passar no fluxo.
+    // 3. APLICAÇÃO DA SEGURANÇA: Comparar a senha (usando o HashingService injetado)
+    // O HashingService (Bcrypt) recebe a senha crua e o hash do banco.
+    const passwordMatch = await this.hashingService.compare(
+      input.password,
+      user.password
+    );
+
+    // 4. Regra de Negócio: Se a senha NÃO bater, lançar o erro
+    if (!passwordMatch) {
+      throw new Error("Invalid credentials");
+    }
+
+    // 5. Sucesso: Devolve o usuário
     return user;
   }
 }
