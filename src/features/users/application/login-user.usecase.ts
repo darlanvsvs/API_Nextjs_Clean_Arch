@@ -2,40 +2,52 @@
 
 import { UserRepository } from "./user.repository.interface";
 import { HashingService } from "./hashing.service.interface";
+import { JWTService } from "./jwt.service.interface"; // <--- NOVO IMPORT
 
 export class LoginUserUseCase {
   private userRepository: UserRepository;
   private hashingService: HashingService;
+  private jwtService: JWTService; // <-- NOVA PROPRIEDADE
 
-  // O construtor recebe as duas dependências (Injeção de Dependência)
-  constructor(userRepository: UserRepository, hashingService: HashingService) {
+  // O construtor AGORA aceita TRÊS dependências
+  constructor(
+    userRepository: UserRepository,
+    hashingService: HashingService,
+    jwtService: JWTService // <-- NOVO ARGUMENTO
+  ) {
     this.userRepository = userRepository;
     this.hashingService = hashingService;
+    this.jwtService = jwtService; // <-- Salva a nova dependência
   }
 
   // O método de execução
   async execute(input: { email: string; password: string }) {
-    // 1. Orquestração: Buscar o usuário pelo email
+    // 1. Buscar o usuário pelo email
     const user = await this.userRepository.findByEmail(input.email);
 
-    // 2. Regra de Negócio: Se o usuário não for achado, lançar erro (Já implementado)
+    // 2. Se o usuário não for achado, lançar erro
     if (!user) {
       throw new Error("Invalid credentials");
     }
 
-    // 3. APLICAÇÃO DA SEGURANÇA: Comparar a senha (usando o HashingService injetado)
-    // O HashingService (Bcrypt) recebe a senha crua e o hash do banco.
+    // 3. Comparar a senha
     const passwordMatch = await this.hashingService.compare(
       input.password,
       user.password
     );
 
-    // 4. Regra de Negócio: Se a senha NÃO bater, lançar o erro
+    // 4. Se a senha NÃO bater, lançar o erro
     if (!passwordMatch) {
       throw new Error("Invalid credentials");
     }
 
-    // 5. Sucesso: Devolve o usuário
-    return user;
+    // 5. NOVO: Gerar o token (O teste está esperando que esta linha seja chamada!)
+    const token = this.jwtService.generateToken({
+      userId: user.id,
+      email: user.email,
+    });
+
+    // 6. Sucesso: Devolve o TOKEN gerado, e não mais o objeto completo do usuário
+    return token;
   }
 }

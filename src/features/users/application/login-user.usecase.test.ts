@@ -1,40 +1,63 @@
 import { describe, it, expect, vi, Mock } from "vitest";
-
-// Interfaces que o Use Case espera (existentes)
 import {
   UserRepository,
   UserSaveData,
 } from "@/features/users/application/user.repository.interface";
 import { HashingService } from "@/features/users/application/hashing.service.interface";
-
-// Importa o Use Case que AINDA NÃO EXISTE
 import { LoginUserUseCase } from "./login-user.usecase";
+import {
+  JWTService,
+  TokenPayload,
+} from "@/features/users/application/jwt.service.interface";
 
 // --- Configuração e Mocks (Reutilizados) ---
 
+// --- MockUserRepository ---
 class MockUserRepository implements UserRepository {
-  // Usaremos findByEmail
-  save = vi.fn();
+  // Tipagem simplificada: (input) => Promise<output>
+  save: (user: UserSaveData) => Promise<UserSaveData> = vi.fn();
   findByEmail: (email: string) => Promise<UserSaveData | null> = vi.fn();
 }
 
+// --- MockHashingService ---
 class MockHashingService implements HashingService {
-  // Usaremos compare
-  hash = vi.fn();
-  compare = vi.fn().mockResolvedValue(true);
+  // Tipagem simplificada:
+  hash: (password: string) => Promise<string> = vi
+    .fn()
+    .mockResolvedValue("hashed_secret_from_mock");
+  compare: (password: string, hash: string) => Promise<boolean> = vi.fn();
+}
+
+// --- MockJWTService (O Novo) ---
+class MockJWTService implements JWTService {
+  // Tipagem simplificada:
+  generateToken: (payload: TokenPayload) => string = vi.fn(); // Retorno Síncrono (string)
+  verifyToken: (token: string) => TokenPayload | null = vi.fn();
 }
 
 describe("LoginUserUseCase (Application Layer)", () => {
   let mockRepo: MockUserRepository;
   let mockHashingService: MockHashingService;
   let useCase: LoginUserUseCase;
+  let mockJWTService: MockJWTService;
+
+  const foundUser: UserSaveData = {
+    id: "user-uuid-456",
+    email: "found@user.com",
+    password: "hashed_password",
+  };
 
   beforeEach(() => {
     mockRepo = new MockUserRepository();
     mockHashingService = new MockHashingService();
+    mockJWTService = new MockJWTService();
     // O Use Case de Login precisa das duas dependências
     // Isso causará um erro de compilação/importação (RED)
-    useCase = new LoginUserUseCase(mockRepo, mockHashingService);
+    useCase = new LoginUserUseCase(
+      mockRepo,
+      mockHashingService,
+      mockJWTService
+    );
     vi.clearAllMocks();
   });
 
@@ -79,5 +102,32 @@ describe("LoginUserUseCase (Application Layer)", () => {
       inputData.password,
       foundUser.password
     );
+  });
+
+  // 🔴 TESTE 3: Deve gerar e retornar o token na chamada bem-sucedida (RED)
+  it("should generate and return a token on successful login (RED)", async () => {
+    // ARRANGE
+    const expectedToken = "JWT_TOKEN_GENERATED_BY_MOCK";
+    const inputData = { email: foundUser.email, password: "correct_password" };
+
+    // 1. Configura mocks para SUCESSO
+    (mockRepo.findByEmail as Mock).mockResolvedValue(foundUser);
+    (mockHashingService.compare as Mock).mockResolvedValue(true); // Senha correta
+    // 2. Configura o mock de JWT para retornar o token esperado
+    (mockJWTService.generateToken as Mock).mockReturnValue(expectedToken);
+
+    // 3. ACT
+    const result = await useCase.execute(inputData);
+
+    // 4. ASSERT (A falha lógica: o Use Case ainda retorna o objeto User, não o token)
+    expect(mockJWTService.generateToken).toHaveBeenCalledTimes(1);
+    expect(mockJWTService.generateToken).toHaveBeenCalledWith({
+      userId: foundUser.id,
+      email: foundUser.email,
+    });
+
+    // O teste falhará porque o Use Case retorna o objeto User, mas esperamos o Token.
+    expect(result).toBe(expectedToken);
+    expect(result).not.toHaveProperty("password"); // Garante que não devolve a senha
   });
 });
