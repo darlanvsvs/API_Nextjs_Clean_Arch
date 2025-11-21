@@ -15,7 +15,7 @@ import { LoginUserUseCase } from "./login-user.usecase";
 class MockUserRepository implements UserRepository {
   // Usaremos findByEmail
   save = vi.fn();
-  findByEmail = vi.fn<[string], Promise<UserSaveData | null>>(); // Keep this line as is
+  findByEmail: (email: string) => Promise<UserSaveData | null> = vi.fn();
 }
 
 class MockHashingService implements HashingService {
@@ -43,7 +43,7 @@ describe("LoginUserUseCase (Application Layer)", () => {
     const inputData = { email: "nonexistent@user.com", password: "password" };
 
     // 1. Arrange: Treinamos o repositório para RETORNAR NULL (Usuário não existe)
-    mockRepo.findByEmail.mockResolvedValue(null);
+    (mockRepo.findByEmail as Mock).mockResolvedValue(null);
 
     // 2. Assert (A Falha Esperada): Esperamos que ele lance um erro
     await expect(useCase.execute(inputData)).rejects.toThrow(
@@ -64,7 +64,7 @@ describe("LoginUserUseCase (Application Layer)", () => {
       email: inputData.email,
       password: "hashed_password",
     };
-    mockRepo.findByEmail.mockResolvedValue(foundUser);
+    (mockRepo.findByEmail as Mock).mockResolvedValue(foundUser);
 
     // 2. Arrange: O serviço de HASH retorna FALSO (senha incorreta)
     (mockHashingService.compare as Mock).mockResolvedValue(false);
