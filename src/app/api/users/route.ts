@@ -1,5 +1,5 @@
 // src/app/api/users/route.ts
-import { createUserAction } from "./create-user-action";
+import { createUserAction } from "@/features/users/presentation/actions/create-user-action";
 
 // This file now just satisfies the Next.js routing rule.
 // All the logic is correctly located inside the feature slice.

@@ -3,6 +3,8 @@
 // 1. Importa o Caso de Uso (Application Layer)
 import { CreateUserUseCase } from "./application/create-user.usecase";
 
+import { LoginUserUseCase } from "./application/login-user.usecase";
+
 // 2. Importa as implementações REAIS (Infrastructure Layer)
 import { PrismaUserRepository } from "./infrastructure/PrismaUserRepository";
 import { BcryptHashingService } from "./infrastructure/BcryptHashingService";
@@ -15,6 +17,12 @@ const hashingService = new BcryptHashingService();
 
 // 4. Criamos o Use Case, INJETANDO as dependências reais
 export const createUserController = new CreateUserUseCase(
+  userRepository,
+  hashingService
+);
+
+// 3. Montamos o Use Case de LOGIN (NOVO)
+export const loginUserController = new LoginUserUseCase(
   userRepository,
   hashingService
 );

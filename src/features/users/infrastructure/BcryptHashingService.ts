@@ -13,6 +13,7 @@ export class BcryptHashingService implements HashingService {
 
   // Implementação do método compare (usado para login futuro)
   async compare(password: string, hashValue: string): Promise<boolean> {
+    // Usa a função compare do bcrypt (ele sabe lidar com o salt/hash)
     return compare(password, hashValue);
   }
 }
