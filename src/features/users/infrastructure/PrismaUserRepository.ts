@@ -15,7 +15,6 @@ export class PrismaUserRepository implements UserRepository {
       // mas para este teste vamos retornar tudo como o contrato espera:
     }) as Promise<UserSaveData | null>;
   }
-
   // Implementação do método de salvar
   async save(user: UserSaveData): Promise<UserSaveData> {
     // Usamos o método create do Prisma para salvar
@@ -25,5 +24,11 @@ export class PrismaUserRepository implements UserRepository {
 
     // O Prisma gera o ID automaticamente, satisfazendo nosso contrato.
     return createdUser as UserSaveData;
+  }
+  // Implementação do método de busca por ID
+  async findById(id: string): Promise<UserSaveData | null> {
+    return db.user.findUnique({
+      where: { id },
+    }) as Promise<UserSaveData | null>;
   }
 }

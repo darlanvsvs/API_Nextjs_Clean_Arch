@@ -12,8 +12,7 @@ export type UserCreateData = Omit<UserSaveData, "id">; // Remove 'id' de UserSav
 
 // A interface que define o CONTRATO
 export interface UserRepository {
-  // Agora o save RECEBE UserCreateData e RETORNA UserSaveData
   save(user: UserCreateData): Promise<UserSaveData>;
-
   findByEmail(email: string): Promise<UserSaveData | null>;
+  findById(id: string): Promise<UserSaveData | null>;
 }

@@ -1,28 +1,32 @@
 // src/features/users/user.module.ts
 
-// 1. Importa o Caso de Uso (Application Layer)
 import { CreateUserUseCase } from "./application/create-user.usecase";
-
 import { LoginUserUseCase } from "./application/login-user.usecase";
-
-// 2. Importa as implementações REAIS (Infrastructure Layer)
 import { PrismaUserRepository } from "./infrastructure/PrismaUserRepository";
 import { BcryptHashingService } from "./infrastructure/BcryptHashingService";
+import { JsonWebTokenService } from "./infrastructure/JsonWebTokenService";
+import { GetAuthenticatedUserUseCase } from "./application/get-authenticated-user.usecase";
 
-// --- Montagem ---
-
-// 3. Criamos as instâncias dos Adaptadores (Borda)
+// 1. Criamos as instâncias da INFRAESTRUTURA (a borda)
 const userRepository = new PrismaUserRepository();
 const hashingService = new BcryptHashingService();
+const jwtService = new JsonWebTokenService(); // <--- NOVA INSTÂNCIA
 
-// 4. Criamos o Use Case, INJETANDO as dependências reais
+// 2. Montamos o Use Case de CRIAÇÃO
 export const createUserController = new CreateUserUseCase(
   userRepository,
   hashingService
 );
 
-// 3. Montamos o Use Case de LOGIN (NOVO)
+// 3. Montamos o Use Case de LOGIN (INJETANDO O NOVO SERVIÇO)
 export const loginUserController = new LoginUserUseCase(
   userRepository,
-  hashingService
+  hashingService,
+  jwtService // <--- NOVO ARGUMENTO INJETADO
+);
+
+// NOVO: 3. Montamos o Use Case de Autorização
+export const getAuthenticatedUserController = new GetAuthenticatedUserUseCase(
+  userRepository,
+  jwtService // <--- Injetamos apenas o Repositório e o JWTService
 );

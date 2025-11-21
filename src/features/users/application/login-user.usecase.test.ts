@@ -17,6 +17,7 @@ class MockUserRepository implements UserRepository {
   // Tipagem simplificada: (input) => Promise<output>
   save: (user: UserSaveData) => Promise<UserSaveData> = vi.fn();
   findByEmail: (email: string) => Promise<UserSaveData | null> = vi.fn();
+  findById = vi.fn();
 }
 
 // --- MockHashingService ---
