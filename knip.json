@@ -1,0 +1,19 @@
+{
+  "$schema": "https://unpkg.com/knip@latest/schema.json",
+  "entry": [
+    "src/app/**/{page,layout,loading,error,not-found}.tsx",
+    "src/app/api/**/route.ts",
+    "next.config.mjs",
+    "postcss.config.mjs",
+    "tailwind.config.ts",
+    "vitest.config.ts"
+  ],
+  "project": ["src/**/*.{ts,tsx}"],
+  "ignoreDependencies": [
+    "tailwindcss",
+    "@testing-library/react",
+    "autoprefixer",
+    "postcss"
+  ],
+  "ignore": ["src/features/users/domain/user.schema.ts"]
+}

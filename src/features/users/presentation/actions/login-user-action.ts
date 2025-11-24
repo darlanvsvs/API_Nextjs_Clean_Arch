@@ -14,26 +14,27 @@ export async function loginUserAction(request: Request) {
 
     // 2. Sucesso: Retorna status 200 (OK) e o objeto do usuário logado
     return NextResponse.json(user, { status: 200 });
-  } catch (error: any) {
-    // TRATAMENTO DE ERROS
+  } catch (error: unknown) {
+    // 1. MUDANÇA: Usamos 'unknown' em vez de 'any'
 
-    // 3. Erro de Validação de Domínio (Zod)
+    // 2. VERIFICAÇÃO SEGURA (Type Guard)
+    // O TypeScript agora sabe que dentro deste if, 'error' é definitivamente um ZodError
     if (error instanceof ZodError) {
       return NextResponse.json(
         { message: "Validation failed", details: error.issues },
-        { status: 400 } // Bad Request
+        { status: 400 }
       );
     }
 
-    // 4. Erro de Aplicação (Regra de Negócio: Credenciais Inválidas)
-    if (error.message === "Invalid credentials") {
-      return NextResponse.json(
-        { message: error.message },
-        { status: 401 } // 401 Unauthorized (Padrão para falha de login)
-      );
+    // 3. VERIFICAÇÃO SEGURA PARA ERROS COMUNS
+    // Verificamos se é um objeto Error padrão antes de ler .message
+    if (error instanceof Error) {
+      if (error.message === "Invalid credentials") {
+        return NextResponse.json({ message: error.message }, { status: 401 });
+      }
     }
 
-    // 5. Erro genérico do servidor (Infraestrutura)
+    // 4. REDE DE SEGURANÇA FINAL
     console.error("🚨 CRITICAL LOGIN SERVER ERROR:", error);
     return NextResponse.json(
       { message: "Internal Server Error" },

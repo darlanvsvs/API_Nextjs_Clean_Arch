@@ -3,60 +3,70 @@
 import { useState } from "react";
 
 export function LoginForm() {
+  // Define o formato de erro detalhado que a rota retorna (Zod)
+  type ErrorDetail = {
+    code: string;
+    message: string;
+    path: string[];
+  };
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [status, setStatus] = useState<
     "idle" | "loading" | "success" | "error"
-  >("idle");
-  const [message, setMessage] = useState("");
+  >("idle"); // Array para mensagens
+  const [messages, setMessages] = useState<string[]>([]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setStatus("loading");
-    setMessage("");
+    setMessages([]);
 
     try {
-      // 1. Chamada à nova API Route de Login
       const response = await fetch("/api/login", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        // 2. Erro 401 Unauthorized (Falha de Login) ou Erro 500
-        if (response.status === 401) {
-          setMessage("Credenciais inválidas. Tente novamente.");
-        } else {
-          setMessage(
-            data.message || "Erro no servidor. Tente novamente mais tarde."
+        let finalErrorMessages: string[] = [];
+
+        // 1. Tratamento de Erros da API (400, 401, 409, 500)
+        if (response.status === 400 && data.details) {
+          // Erro Zod
+          const zodErrors = data.details as ErrorDetail[];
+          finalErrorMessages = zodErrors.map(
+            (err) => `[${err.path.join(".") || "Geral"}]: ${err.message}`
           );
+        } else {
+          // Erro de Negócio (Login falhou, etc)
+          finalErrorMessages = [data.message || "Erro desconhecido"];
         }
 
-        // Lança o erro para o bloco catch
-        throw new Error(data.message || "Falha na requisição.");
+        // Atualizamos a UI e PARAMOS aqui. Não lançamos erro.
+        setMessages(finalErrorMessages);
+        setStatus("error");
+        return;
       }
 
-      // 3. Sucesso!
+      // 2. Sucesso (200)
       setStatus("success");
-      setMessage(`Login bem-sucedido! Bem-vindo, ${data.email}.`);
+      setMessages([`Login bem-sucedido! Bem-vindo, ${data.email}.`]);
+      setEmail("");
       setPassword("");
-    } catch (error: any) {
-      // Este catch lida principalmente com erros de rede ou a exceção do bloco try
-      if (status !== "error") {
-        // Garante que a mensagem de sucesso não seja apagada
-        setStatus("error");
-      }
-      if (!message) {
-        // Se a mensagem não foi setada (ex: erro de rede puro)
-        setMessage("Falha na conexão de rede.");
-      }
+    } catch (error: unknown) {
+      // 3. Este bloco só roda se o fetch falhar (ex: servidor desligado)
+      console.error(error);
+      setStatus("error");
+      setMessages([
+        "Falha na conexão de rede. Verifique se o servidor está rodando.",
+      ]);
     } finally {
-      setStatus("idle");
+      if (status !== "success" && status !== "error") {
+        setStatus("idle"); // Reseta apenas se não definiu resultado final
+      }
     }
   }
 
@@ -100,7 +110,7 @@ export function LoginForm() {
       </button>
 
       {/* Área de Feedback */}
-      {message && (
+      {messages.length > 0 && (
         <div
           className={`p-3 rounded text-sm ${
             status === "error"
@@ -108,7 +118,9 @@ export function LoginForm() {
               : "bg-green-100 text-green-800"
           }`}
         >
-          {message}
+          {messages.map((msg, index) => (
+            <p key={index}>{msg}</p>
+          ))}
         </div>
       )}
     </form>
